@@ -105,13 +105,13 @@ function analyzeSegment(seg: Token[], depth = 0): Risk | null {
 		reasons.push("find -delete (bulk deletion)");
 	}
 
-	// git operations (prompt on ANY git command)
+	// Git: skip known read-only subcommands to avoid needless prompts.
 	if (cmd === "git") {
 		// Ignore global git options (-C, --no-pager, etc.) when finding the subcommand.
 		const subIndex = rest.findIndex((arg) => !arg.startsWith("-"));
 		const sub = subIndex >= 0 ? rest[subIndex] : undefined;
 		const subArgs = subIndex >= 0 ? rest.slice(subIndex + 1) : [];
-		const readOnly = new Set(["status", "diff", "log", "show", "branch", "tag", "remote", "rev-parse", "ls-files", "describe", "cat-file", "config"]);
+		const readOnly = new Set(["status", "diff", "log", "show", "rev-parse", "ls-files", "describe", "cat-file"]);
 		if (!sub || !readOnly.has(sub)) {
 			reasons.push(sub ? `git ${sub} (git command)` : "git (git command)");
 		}
