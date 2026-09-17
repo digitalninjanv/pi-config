@@ -36,8 +36,20 @@ test("bash guard leaves common read-only git commands unflagged", () => {
     "git log --oneline",
     "git show HEAD",
     "git -C . rev-parse HEAD",
+    "git --git-dir .git status",
+    "git -c core.pager=cat diff",
+    "git --no-pager log --oneline",
   ]) {
     assert.equal(analyzeBashCommand(command), null, command);
+  }
+});
+
+test("bash guard parses git global options before the subcommand", () => {
+  for (const command of [
+    "git -C . clean -fd",
+    "git --git-dir .git reset --hard HEAD",
+  ]) {
+    assert.equal(analyzeBashCommand(command)?.severity, "high", command);
   }
 });
 
