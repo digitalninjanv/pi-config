@@ -27,6 +27,9 @@ const PRIVATE_IPV4 = [
 	/^10\./,
 	/^192\.168\./,
 	/^169\.254\./,
+	/^100\.(6[4-9]|[7-9]\d)\./,
+	/^198\.(1[89])\./,
+	/^0\./,
 	/^172\.(1[6-9]|2\d|3[0-1])\./,
 ];
 const PRIVATE_IPV6 = [
@@ -34,6 +37,7 @@ const PRIVATE_IPV6 = [
 	/^fc/i,
 	/^fd/i,
 	/^fe80:/i,
+	/^::ffff:(?:127\.|10\.|192\.168\.|169\.254\.|172\.(?:1[6-9]|2\d|3[0-1])\.)/i,
 ];
 
 export async function assertSafeHttpUrl(rawUrl: string): Promise<URL> {
