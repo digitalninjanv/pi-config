@@ -46,6 +46,53 @@ function anyArgStartsWith(args: string[], prefix: string): boolean {
 	return args.some((a) => a.startsWith(prefix));
 }
 
+function splitGitArgs(args: string[]): { sub?: string; subArgs: string[] } {
+	const valueOptions = new Set(["-C", "-c", "--exec-path", "--git-dir", "--work-tree", "--namespace", "--config-env"]);
+	let i = 0;
+
+	while (i < args.length) {
+		const arg = args[i];
+
+		if (arg === "--") {
+			i++;
+			break;
+		}
+
+		// Git global options that consume the following argument.
+		if (valueOptions.has(arg)) {
+			i += 2;
+			continue;
+		}
+
+		// Long options with inline values.
+		if (
+			arg.startsWith("--exec-path=") ||
+			arg.startsWith("--git-dir=") ||
+			arg.startsWith("--work-tree=") ||
+			arg.startsWith("--namespace=") ||
+			arg.startsWith("--config-env=")
+		) {
+			i++;
+			continue;
+		}
+
+		// Compact -cname=value form.
+		if (arg.startsWith("-c") && arg !== "-c") {
+			i++;
+			continue;
+		}
+
+		if (arg.startsWith("-")) {
+			i++;
+			continue;
+		}
+
+		return { sub: arg, subArgs: args.slice(i + 1) };
+	}
+
+	return { sub: undefined, subArgs: args.slice(i) };
+}
+
 function analyzeSegment(seg: Token[], depth = 0): Risk | null {
 	const reasons: string[] = [];
 	let severity: Severity = "medium";
@@ -107,10 +154,7 @@ function analyzeSegment(seg: Token[], depth = 0): Risk | null {
 
 	// Git: skip known read-only subcommands to avoid needless prompts.
 	if (cmd === "git") {
-		// Ignore global git options (-C, --no-pager, etc.) when finding the subcommand.
-		const subIndex = rest.findIndex((arg) => !arg.startsWith("-"));
-		const sub = subIndex >= 0 ? rest[subIndex] : undefined;
-		const subArgs = subIndex >= 0 ? rest.slice(subIndex + 1) : [];
+		const { sub, subArgs } = splitGitArgs(rest);
 		const readOnly = new Set(["status", "diff", "log", "show", "rev-parse", "ls-files", "describe", "cat-file"]);
 		if (!sub || !readOnly.has(sub)) {
 			reasons.push(sub ? `git ${sub} (git command)` : "git (git command)");
