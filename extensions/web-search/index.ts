@@ -1,6 +1,6 @@
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { Text } from "@mariozechner/pi-tui";
+import { Text } from "@earendil-works/pi-tui";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -128,7 +128,7 @@ function quoteForSearch(value: string): string {
 	return `"${value.replace(/"/g, '\\"')}"`;
 }
 
-function buildSearchQuery(args: StructuredSearchArgs): BuiltSearchQuery {
+export function buildSearchQuery(args: StructuredSearchArgs): BuiltSearchQuery {
 	const baseQuery = cleanQuery(args.query);
 	const exactPhrases = cleanItems(args.exactPhrases);
 	const excludeTerms = cleanItems(args.excludeTerms);

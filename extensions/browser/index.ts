@@ -32,7 +32,7 @@
 
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
@@ -130,9 +130,14 @@ export default function browserExtension(pi: ExtensionAPI) {
   const consoleBuf: ConsoleEntry[] = [];
   const netBuf: NetEntry[] = [];
 
+  const explicitProfile = process.env.PI_BROWSER_PROFILE;
+  const persistent =
+    process.env.PI_BROWSER_PERSIST === "1" || Boolean(explicitProfile);
   const profileDir =
-    process.env.PI_BROWSER_PROFILE ??
-    join(homedir(), ".pi", "agent", "extensions", "browser", ".profile");
+    explicitProfile ??
+    (persistent
+      ? join(homedir(), ".pi", "agent", "extensions", "browser", ".profile")
+      : mkdtempSync(join(tmpdir(), "pi-browser-")));
   const headless = !process.env.PI_BROWSER_HEADFUL;
 
   async function ensurePage(): Promise<Page> {
@@ -203,6 +208,14 @@ export default function browserExtension(pi: ExtensionAPI) {
     }
     context = null;
     page = null;
+
+    if (!persistent && !explicitProfile) {
+      try {
+        rmSync(profileDir, { recursive: true, force: true });
+      } catch {
+        // best-effort cleanup of the ephemeral profile
+      }
+    }
   }
 
   // Default-off gate. The browser tools collectively cost ~800 system-prompt

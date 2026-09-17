@@ -40,6 +40,10 @@ npm install
 
 Then restart pi or run `/reload`.
 
+### Development and safety checks
+
+This repo now includes regression tests and CI for the active extensions. Run `npm install`, then `npm test`, `npm run typecheck`, and `npm run py_test` before publishing changes. `web-fetch` rejects non-HTTP(S), local/private destinations, unsafe redirects, and oversized streamed responses. The browser extension uses an ephemeral profile by default; set `PI_BROWSER_PERSIST=1` or `PI_BROWSER_PROFILE` only when persistent login state is intentional.
+
 ## Copy a skill
 
 ```bash

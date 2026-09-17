@@ -82,7 +82,8 @@ for status; `close` and `kill` are aliases for `off`).
 | Env var | Default | Effect |
 |---|---|---|
 | `PI_BROWSER_HEADFUL` | unset | If set, launch a visible Chromium window. Useful when debugging the extension itself. |
-| `PI_BROWSER_PROFILE` | `~/.pi/agent/extensions/browser/.profile` | Override the persistent user-data dir. Set to a tempdir for ephemeral sessions. |
+| `PI_BROWSER_PROFILE` | unset | Explicit persistent user-data dir. Setting it enables persistence. |
+| `PI_BROWSER_PERSIST` | `0` | Set to `1` to persist the default browser profile. |
 
 ## Network output: terse by default, headers on opt-in
 
