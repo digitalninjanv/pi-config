@@ -36,7 +36,7 @@ const PRIVATE_IPV6 = [
 	/^fe80:/i,
 ];
 
-async function assertSafeHttpUrl(rawUrl: string): Promise<URL> {
+export async function assertSafeHttpUrl(rawUrl: string): Promise<URL> {
 	let parsed: URL;
 	try {
 		parsed = new URL(rawUrl);
@@ -82,7 +82,7 @@ async function fetchSafe(rawUrl: string, init: RequestInit, signal?: AbortSignal
 	throw new Error("Too many redirects");
 }
 
-async function readBodyLimited(response: Response, maxBytes: number): Promise<Uint8Array> {
+export async function readBodyLimited(response: Response, maxBytes: number): Promise<Uint8Array> {
 	if (!response.body) return new Uint8Array();
 	const reader = response.body.getReader();
 	const chunks: Uint8Array[] = [];
@@ -137,7 +137,7 @@ function isPDF(url: string, contentType?: string): boolean {
 }
 
 async function extractPDF(
-	buffer: ArrayBuffer,
+	buffer: ArrayBufferLike,
 	url: string,
 ): Promise<FetchResult> {
 	const { getDocumentProxy } = await import("unpdf");
