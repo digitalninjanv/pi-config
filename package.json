@@ -6,7 +6,7 @@
     "node": ">=22.19.0"
   },
   "scripts": {
-    "test": "node --test tests/**/*.test.mjs",
+    "test": "node --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "py_test": "python3 -m unittest discover -s tests -p 'test_*.py'"
   },

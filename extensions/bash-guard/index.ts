@@ -144,7 +144,6 @@ function analyzeSegment(seg: Token[], depth = 0): Risk | null {
 			severity = "high";
 			reasons.push("git gc --prune (can permanently delete objects)");
 		}
-		}
 	}
 
 	// truncate
