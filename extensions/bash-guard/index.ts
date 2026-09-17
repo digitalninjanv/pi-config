@@ -46,7 +46,7 @@ function anyArgStartsWith(args: string[], prefix: string): boolean {
 	return args.some((a) => a.startsWith(prefix));
 }
 
-function analyzeSegment(seg: Token[]): Risk | null {
+function analyzeSegment(seg: Token[], depth = 0): Risk | null {
 	const reasons: string[] = [];
 	let severity: Severity = "medium";
 
@@ -56,6 +56,27 @@ function analyzeSegment(seg: Token[]): Risk | null {
 
 	const cmd = args[0];
 	const rest = args.slice(1);
+
+	// Inspect nested shell commands (sh -c / bash -lc / env ... bash -c ...).
+	// This closes a common wrapper bypass without trying to fully emulate a shell.
+	if (depth < 3) {
+		for (let i = 0; i < args.length - 2; i++) {
+			const candidate = args[i];
+			const next = args[i + 1];
+			const shell = /^(?:sh|bash|zsh|fish|dash)$/.test(candidate);
+			const commandFlag = /^-(?:[a-zA-Z]*c[a-zA-Z]*|c|command)$/.test(next);
+			if (shell && commandFlag) {
+				const nested = args[i + 2];
+				if (nested) {
+					const nestedRisk = analyzeBashCommand(nested, depth + 1);
+					if (nestedRisk) {
+						reasons.push("nested shell: " + nestedRisk.reasons.join("; "));
+						if (nestedRisk.severity === "high") severity = "high";
+					}
+				}
+			}
+		}
+	}
 
 	// Shell redirection / pipes are handled on the whole command, but keep some segment checks too.
 	if (ops.includes("|") && (args.includes("sh") || args.includes("bash") || args.includes("zsh") || args.includes("fish"))) {
@@ -266,7 +287,7 @@ function analyzeSegment(seg: Token[]): Risk | null {
 	return { severity, reasons };
 }
 
-function analyzeBashCommand(command: string): Risk | null {
+export function analyzeBashCommand(command: string, depth = 0): Risk | null {
 	let tokens: Token[];
 	try {
 		tokens = shellParse(command) as Token[];
@@ -294,7 +315,7 @@ function analyzeBashCommand(command: string): Risk | null {
 	// Segment analysis (split on &&, ||, ;)
 	const segments = splitOnOps(tokens, ["&&", "||", ";"]);
 	for (const seg of segments) {
-		const segRisk = analyzeSegment(seg);
+		const segRisk = analyzeSegment(seg, depth);
 		if (!segRisk) continue;
 		if (segRisk.severity === "high") severity = "high";
 		for (const r of segRisk.reasons) reasons.push(r);
