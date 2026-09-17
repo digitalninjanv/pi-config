@@ -349,7 +349,7 @@ export function analyzeBashCommand(command: string, depth = 0): Risk | null {
 	const ops = tokens.filter(isOpToken).map((t) => t.op);
 	if (ops.some((op) => op === ">" || op === ">>" || op === "2>" || op === "2>>")) {
 		reasons.push("shell output redirection (can overwrite files)");
-		severity = severity === "high" ? "high" : "medium";
+		severity = "medium";
 	}
 	if (ops.includes("<")) {
 		reasons.push("shell input redirection (questionable)");
