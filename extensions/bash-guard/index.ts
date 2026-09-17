@@ -1,4 +1,4 @@
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { DynamicBorder, isToolCallEventType } from "@earendil-works/pi-coding-agent";
 import type { SelectItem } from "@earendil-works/pi-tui";
 import { Container, SelectList, Text } from "@earendil-works/pi-tui";
@@ -21,6 +21,51 @@ function isOpToken(t: Token): t is OpToken {
 
 function tokensToStrings(tokens: Token[]): string[] {
 	return tokens.filter((t) => typeof t === "string") as string[];
+}
+
+function splitGitArgs(args: string[]): { sub?: string; subArgs: string[] } {
+	const valueOptions = new Set([
+		"-C",
+		"-c",
+		"--exec-path",
+		"--git-dir",
+		"--work-tree",
+		"--namespace",
+		"--config-env",
+	]);
+	let i = 0;
+	while (i < args.length) {
+		const arg = args[i];
+		if (arg === "--") {
+			i++;
+			break;
+		}
+		if (valueOptions.has(arg)) {
+			i += 2;
+			continue;
+		}
+		if (
+			arg.startsWith("--exec-path=") ||
+			arg.startsWith("--git-dir=") ||
+			arg.startsWith("--work-tree=") ||
+			arg.startsWith("--namespace=") ||
+			arg.startsWith("--config-env=") ||
+			(arg.startsWith("-C") && arg !== "-C")
+		) {
+			i++;
+			continue;
+		}
+		if (arg.startsWith("-c") && arg !== "-c") {
+			i++;
+			continue;
+		}
+		if (arg.startsWith("-")) {
+			i++;
+			continue;
+		}
+		return { sub: arg, subArgs: args.slice(i + 1) };
+	}
+	return { sub: undefined, subArgs: args.slice(i) };
 }
 
 function splitOnOps(tokens: Token[], splitOps: string[]): Token[][] {
@@ -108,9 +153,7 @@ function analyzeSegment(seg: Token[], depth = 0): Risk | null {
 	// Git: skip known read-only subcommands to avoid needless prompts.
 	if (cmd === "git") {
 		// Ignore global git options (-C, --no-pager, etc.) when finding the subcommand.
-		const subIndex = rest.findIndex((arg) => !arg.startsWith("-"));
-		const sub = subIndex >= 0 ? rest[subIndex] : undefined;
-		const subArgs = subIndex >= 0 ? rest.slice(subIndex + 1) : [];
+		const { sub, subArgs } = splitGitArgs(rest);
 		const readOnly = new Set(["status", "diff", "log", "show", "rev-parse", "ls-files", "describe", "cat-file"]);
 		if (!sub || !readOnly.has(sub)) {
 			reasons.push(sub ? `git ${sub} (git command)` : "git (git command)");
@@ -148,7 +191,7 @@ function analyzeSegment(seg: Token[], depth = 0): Risk | null {
 
 	// truncate
 	if (cmd === "truncate") {
-		severity = severity === "high" ? "high" : "medium";
+		severity = "medium";
 		reasons.push("truncate (in-place size change, can erase contents)");
 	}
 
@@ -306,7 +349,7 @@ export function analyzeBashCommand(command: string, depth = 0): Risk | null {
 	const ops = tokens.filter(isOpToken).map((t) => t.op);
 	if (ops.some((op) => op === ">" || op === ">>" || op === "2>" || op === "2>>")) {
 		reasons.push("shell output redirection (can overwrite files)");
-		severity = severity === "high" ? "high" : "medium";
+		severity = "medium";
 	}
 	if (ops.includes("<")) {
 		reasons.push("shell input redirection (questionable)");
@@ -330,7 +373,7 @@ export function analyzeBashCommand(command: string, depth = 0): Risk | null {
 	return { severity, reasons: uniq };
 }
 
-async function promptRunOrAbort(ctx: any, command: string, risk: Risk): Promise<"run" | "abort"> {
+async function promptRunOrAbort(ctx: ExtensionContext, command: string, risk: Risk): Promise<"run" | "abort"> {
 	if (!ctx.hasUI) return "abort";
 
 	const reasonsText = risk.reasons.map((r) => `• ${r}`).join("\n");

@@ -22,6 +22,8 @@
     "linkedom": "0.16.11",
     "turndown": "7.2.4",
     "unpdf": "1.8.1",
-    "playwright-core": "1.63.0"
+    "playwright-core": "1.63.0",
+    "@types/shell-quote": "1.7.5",
+    "@types/turndown": "5.0.6"
   }
 }

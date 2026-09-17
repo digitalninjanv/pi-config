@@ -50,3 +50,25 @@ test("bash guard catches nested shell wrappers", () => {
     assert.equal(analyzeBashCommand(command)?.severity, "high", command);
   }
 });
+
+
+test("bash guard parses git global options before the subcommand", () => {
+  for (const command of [
+    "git -C . status",
+    "git --git-dir .git status",
+    "git -c core.pager=cat diff",
+    "git --no-pager log --oneline",
+    "git -C . rev-parse HEAD",
+  ]) {
+    assert.equal(analyzeBashCommand(command), null, command);
+  }
+});
+
+test("bash guard still flags destructive git commands after global options", () => {
+  for (const command of [
+    "git -C . clean -fd",
+    "git --git-dir .git reset --hard HEAD",
+  ]) {
+    assert.equal(analyzeBashCommand(command)?.severity, "high", command);
+  }
+});
